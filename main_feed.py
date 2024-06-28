@@ -2,23 +2,24 @@ import urllib.request as libreq
 import feedparser
 from datetime import datetime,timedelta
 import time
+from pathlib import Path
 
 """
-Here we download the full arxive feed and filter cor cathegory and authors
+Here we download the full arxive feed and filter for cathegory and authors
 """
-days_back = 3 if not datetime.now().weekday()==0 else 3     #Change the 1 to 2,3 ecc.. to have earlier dates
+days_back = 1 if not datetime.now().weekday()==0 else 3     #Change the 1 to 2,3 ecc.. to have earlier dates
 
 # Base api query url
 base_url = 'http://export.arxiv.org/api/query?'
 
 initial_r = 0
 max_r = 500
-wait_time = 3
+wait_time = 5
 
 repeat = True
 filter_list = []
 while repeat:
-    print(initial_r)
+    print("start: ",initial_r)
     repeat = False
     #Extract first max_r last papers
     full_list = []
@@ -34,7 +35,7 @@ while repeat:
     if not max_r == len(full_list):
         repeat = True
         time.sleep(wait_time)
-        print("not right amount iof results")
+        print("not right amount of results")
         continue
 
     #Filter to have the right date
@@ -56,28 +57,31 @@ while repeat:
 
 print("Total physics entries: ",len(filter_list))
 #Filter for authors
-list_names = ['Dario Rossi','Jerome Lloyd','Michael Sonner','Julian Thoenniss','Lorenzo Pizzino','Giacomo Morpurgo','Florian Stabler','Ivo Gabrovski','Anna Efimova',
-            'Margherita Melegari','Lucia Varbaro','Ludovica Tovaglieri','Francesco Lonardo','Julia Issing','Michael Straub','Gianmarco Gatti',
-            'Alexios Michailidis','Johannes Motruk','Alessio Lerose','Catalin-Mihai Halati','Hepeng Yao','Giulia Venditti','Ilya Vilkoviskiy','Lorenzo Gotta',
-            'Dmitry Abanin','Louk Rademaker','Thierry Giamarchi','Michele Filippone','Tony Jin']
 author_list = []
-for i in range(len(filter_list)):
-    for n in range(len(filter_list[i]['authors'])):
-        if filter_list[i]['authors'][n]['name'] in list_names:
-            author_list.append((filter_list[i],n))
-
-print("Total friends entries: ",len(author_list))
+if Path('authors.txt').is_file():
+    with open('authors.txt','r') as f:
+        list_names = f.read().split('\n')[:-1]
+    for i in range(len(filter_list)):
+        for n in range(len(filter_list[i]['authors'])):
+            if filter_list[i]['authors'][n]['name'] in list_names:
+                author_list.append((filter_list[i],n))
+    print("Total selected authors entries: ",len(author_list))
+else:
+    print("No file \"authors.txt\" found")
 
 #Filter for category
-list_categories = ['cond-mat.str-el','cond-mat.mes-hall','cond-mat.quant-gas']
 category_list = []
-for i in range(len(filter_list)):
-    for c in range(len(filter_list[i]['tags'])):
-        if filter_list[i]['tags'][c]['term'] in list_categories:
-            category_list.append(filter_list[i])
-            break
-
-print("Total category entries: ",len(category_list))
+if Path('categories.txt').is_file():
+    with open('categories.txt','r') as f:
+        list_categories = f.read().split('\n')[:-1]
+    for i in range(len(filter_list)):
+        for c in range(len(filter_list[i]['tags'])):
+            if filter_list[i]['tags'][c]['term'] in list_categories:
+                category_list.append(filter_list[i])
+                break
+    print("Total category entries: ",len(category_list))
+else:
+    print("No file \"categories.txt\" found")
 
 def formatAuthors(authors_list,ind=-1):
     formatted_list = ''
@@ -92,21 +96,9 @@ def formatAuthors(authors_list,ind=-1):
                 formatted_list += ', '
     return formatted_list
 
-if 0:   #Print full list
-    considered_list = category_list
-    for i in range(len(considered_list)):
-        if 0:
-            print(considered_list[i].keys())
-        if 1:
-            print('Entry '+str(i)+':')
-            print('Title: ',considered_list[i]['title'])
-            print('Authors: ',formatAuthors(considered_list[i]['authors']))
-            print('Date: ',considered_list[i]['published'])
-            print('Link :',considered_list[i]['link'])
-            print('Cat :',considered_list[i]['arxiv_primary_category']['term'])
-            print('Tags :',[considered_list[i]['tags'][n]['term'] for n in range(len(considered_list[i]['tags']))])
-    exit()
-
+###################################################################################################
+###################################################################################################
+###################################################################################################
 #Create pdf
 print("Creating latex file and pdf")
 from contextlib import redirect_stdout
