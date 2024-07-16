@@ -8,6 +8,11 @@ from pathlib import Path
 Here we download the full arxive feed and filter for cathegory and authors
 """
 days_back = 1 if not datetime.now().weekday()==0 else 3     #Change the 1 to 2,3 ecc.. to have earlier dates
+today = datetime.now() - timedelta(days = days_back)
+formatted_today = '{:04d}'.format(today.year)+'-'+'{:02d}'.format(today.month)+'-'+'{:02d}'.format(today.day)
+yesterday = datetime.now() - timedelta(days = days_back+1)
+formatted_yesterday = '{:04d}'.format(yesterday.year)+'-'+'{:02d}'.format(yesterday.month)+'-'+'{:02d}'.format(yesterday.day)
+print("Downloading articles up to date "+formatted_today)
 
 # Base api query url
 base_url = 'http://export.arxiv.org/api/query?'
@@ -39,10 +44,6 @@ while repeat:
         continue
 
     #Filter to have the right date
-    today = datetime.now() - timedelta(days = days_back)
-    formatted_today = '{:04d}'.format(today.year)+'-'+'{:02d}'.format(today.month)+'-'+'{:02d}'.format(today.day)
-    yesterday = datetime.now() - timedelta(days = days_back+1)
-    formatted_yesterday = '{:04d}'.format(yesterday.year)+'-'+'{:02d}'.format(yesterday.month)+'-'+'{:02d}'.format(yesterday.day)
     for i in range(len(full_list)):
         if ((full_list[i]['published'][:10]==formatted_today and int(full_list[i]['published'][11:13])<18) or 
             (full_list[i]['published'][:10]==formatted_yesterday and int(full_list[i]['published'][11:13])>=18)):
@@ -50,7 +51,11 @@ while repeat:
             if i == len(full_list)-1:
                 repeat = True
     if len(filter_list)==0:
+#        repeat = True
+        print("Something wrong with the search")
+        max_r *= 2
         repeat = True
+        continue
     if repeat:
         initial_r += max_r
         time.sleep(wait_time)
@@ -104,8 +109,9 @@ print("Creating latex file and pdf")
 from contextlib import redirect_stdout
 from pathlib import Path
 import os
+cwd = os.getcwd()
 #
-dirname = 'feeds/'+formatted_today+'/'
+dirname = cwd+'/feeds/'+formatted_today+'/'
 if not Path(dirname).is_dir():
     os.system('mkdir '+dirname)
 #
@@ -157,8 +163,8 @@ with open(filename, 'w') as f:
             print("\\end{enumerate}")
         print("\\end{document}")
 #Create .* files to create the pdf and move them to the folder
-os.system('pdflatex '+filename+' > '+output_file)
-os.system('mv '+formatted_today+'* '+dirname)
+os.system('pdflatex -interaction nonstopmode '+filename+' > '+output_file)
+os.system('mv '+cwd+'/'+formatted_today+'* '+dirname)
 os.system('xdg-open '+filename[:-3]+'pdf')
 
 
