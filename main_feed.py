@@ -3,6 +3,10 @@ import feedparser
 from datetime import datetime,timedelta
 import time
 from pathlib import Path
+import os
+from contextlib import redirect_stdout
+
+cwd = os.path.dirname(os.path.realpath(__file__))
 
 """
 Here we download the full arxive feed and filter for cathegory and authors
@@ -63,8 +67,8 @@ while repeat:
 print("Total physics entries: ",len(filter_list))
 #Filter for authors
 author_list = []
-if Path('authors.txt').is_file():
-    with open('authors.txt','r') as f:
+if Path(cwd+'/authors.txt').is_file():
+    with open(cwd+'/authors.txt','r') as f:
         list_names = f.read().split('\n')[:-1]
     for i in range(len(filter_list)):
         for n in range(len(filter_list[i]['authors'])):
@@ -76,8 +80,8 @@ else:
 
 #Filter for category
 category_list = []
-if Path('categories.txt').is_file():
-    with open('categories.txt','r') as f:
+if Path(cwd+'/categories.txt').is_file():
+    with open(cwd+'/categories.txt','r') as f:
         list_categories = f.read().split('\n')[:-1]
     for i in range(len(filter_list)):
         for c in range(len(filter_list[i]['tags'])):
@@ -106,10 +110,6 @@ def formatAuthors(authors_list,ind=-1):
 ###################################################################################################
 #Create pdf
 print("Creating latex file and pdf")
-from contextlib import redirect_stdout
-from pathlib import Path
-import os
-cwd = os.getcwd()
 #
 dirname = cwd+'/feeds/'+formatted_today+'/'
 if not Path(dirname).is_dir():
