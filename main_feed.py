@@ -163,8 +163,8 @@ with open(filename, 'w') as f:
             print("\\end{enumerate}")
         print("\\end{document}")
 #Create .* files to create the pdf and move them to the folder
-os.system('pdflatex -interaction nonstopmode '+filename+' > '+output_file)
-os.system('mv '+cwd+'/'+formatted_today+'* '+dirname)
+os.system('pdflatex -interaction nonstopmode -output-directory '+dirname+' '+filename+' > '+output_file)
+#Open pdf
 os.system('xdg-open '+filename[:-3]+'pdf')
 
 
