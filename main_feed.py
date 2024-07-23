@@ -28,7 +28,7 @@ wait_time = 5
 repeat = True
 filter_list = []
 while repeat:
-    print("start: ",initial_r)
+    print("start: ",initial_r,", n_results: ",max_r)
     repeat = False
     #Extract first max_r last papers
     full_list = []
@@ -41,12 +41,14 @@ while repeat:
         s = feedparser.parse(r)
     for i in range(len(s['entries'])):
         full_list.append(s['entries'][i])
-    if not max_r == len(full_list):
+    #
+    if len(full_list)==0:
+        print("fetched 0 results.. -> repeat")
         repeat = True
         time.sleep(wait_time)
-        print("not right amount of results")
         continue
-
+    else:
+        print("fetched ",len(full_list)," results")
     #Filter to have the right date
     for i in range(len(full_list)):
         if ((full_list[i]['published'][:10]==formatted_today and int(full_list[i]['published'][11:13])<18) or 
@@ -54,14 +56,12 @@ while repeat:
             filter_list.append(full_list[i])
             if i == len(full_list)-1:
                 repeat = True
+                print("Last element fetched still in the day of the search -> repeat")
     if len(filter_list)==0:
-#        repeat = True
-        print("Something wrong with the search")
-        max_r *= 2
+        print("Something wrong with the search, no elements fetched are in the rigt day -> repeat")
         repeat = True
-        continue
     if repeat:
-        initial_r += max_r
+        initial_r += len(full_list)
         time.sleep(wait_time)
 
 print("Total physics entries: ",len(filter_list))
@@ -105,11 +105,20 @@ def formatAuthors(authors_list,ind=-1):
                 formatted_list += ', '
     return formatted_list
 
+def formatTitle(text):
+    special_characters = ['%',]
+    for sc in special_characters:   #hope there is at most one for each special character
+        if sc in text:
+            ind = text.index(sc)
+            text = text[:ind] + '\\' + text[ind:]
+    return text
+
 ###################################################################################################
 ###################################################################################################
 ###################################################################################################
 #Create pdf
 print("Creating latex file and pdf")
+
 #
 dirname = cwd+'/feeds/'+formatted_today+'/'
 if not Path(dirname).is_dir():
@@ -131,7 +140,7 @@ with open(filename, 'w') as f:
             print("\\begin{enumerate}")
             for i in range(len(author_list)):
                 #Title with url link
-                title_text = author_list[i][0]['title']
+                title_text = formatTitle(author_list[i][0]['title'])
                 print("\\item\\href{"+author_list[i][0]['link']+"}{\\textsf{"+title_text+"}}\\\\")
                 #Authors
                 print("{\\small")
@@ -155,7 +164,7 @@ with open(filename, 'w') as f:
             print("\\begin{enumerate}")
             for i in range(len(category_list)):
                 #Title with url link
-                title_text = category_list[i]['title']
+                title_text = formatTitle(category_list[i]['title'])
                 print("\\item\\href{"+category_list[i]['link']+"}{\\textsf{"+title_text+"}}\\\\")
                 #Authors
                 authors = formatAuthors(category_list[i]['authors'])
