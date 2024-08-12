@@ -3,32 +3,55 @@ import feedparser
 from datetime import datetime,timedelta
 import time
 from pathlib import Path
-import os
+import os,sys
 from contextlib import redirect_stdout
 
 cwd = os.path.dirname(os.path.realpath(__file__))
-
+def format_day(day):
+    return '{:04d}'.format(day.year)+'-'+'{:02d}'.format(day.month)+'-'+'{:02d}'.format(day.day)
 """
 Here we download the full arxive feed and filter for cathegory and authors
 """
-days_back = 1 if not datetime.now().weekday()==0 else 3     #Change the 1 to 2,3 ecc.. to have earlier dates
-today = datetime.now() - timedelta(days = days_back)
-formatted_today = '{:04d}'.format(today.year)+'-'+'{:02d}'.format(today.month)+'-'+'{:02d}'.format(today.day)
-yesterday = datetime.now() - timedelta(days = days_back+1)
-formatted_yesterday = '{:04d}'.format(yesterday.year)+'-'+'{:02d}'.format(yesterday.month)+'-'+'{:02d}'.format(yesterday.day)
-print("Downloading articles up to date "+formatted_today)
+days_back = int(sys.argv[1]) #if not datetime.now().weekday()==0 else 3     #Change the 1 to 2,3 ecc.. to have earlier dates
+announced_day = datetime.now() - timedelta(days = days_back)
+fad = format_day(announced_day)
+if announced_day.weekday()==5 or announced_day.weekday()==6:  #weekend is always special
+    print("Chose a weekend-> going back to the previous friday")
+    days_back += +announced_day.weekday()//3
+    announced_day = datetime.now() - timedelta(days = days_back)
+    fad = format_day(announced_day)
+if announced_day.weekday()==0:  #monday is special
+    end_days_back = 3
+    in_days_back = 4
+elif announced_day.weekday()==1:  #tuesday is also special
+    end_days_back = 1
+    in_days_back = 4
+else:
+    end_days_back = 1
+    in_days_back = 2
+end_sub_day = datetime.now() - timedelta(days = days_back+end_days_back)
+fesd = format_day(end_sub_day)
+in_sub_day = datetime.now() - timedelta(days = days_back+in_days_back)
+fisd = format_day(in_sub_day)
+print("Downloading articles of date "+fad+" (from 18:01 of "+fisd+" to 18:00 of "+fesd+")")
+
+if 0:   #For debugging
+    if input("Continue? [Y/n]")=='n':
+        exit()
 
 # Base api query url
 base_url = 'http://export.arxiv.org/api/query?'
 
 initial_r = 0
-max_r = 500
-wait_time = 5
+max_r = 1000
+wait_time = 3
 
 repeat = True
 filter_list = []
+fetched_0 = False
 while repeat:
-    print("start: ",initial_r,", n_results: ",max_r)
+    if not fetched_0:
+        print("start: ",initial_r,", n_results: ",max_r)
     repeat = False
     #Extract first max_r last papers
     full_list = []
@@ -46,13 +69,15 @@ while repeat:
         print("fetched 0 results.. -> repeat")
         repeat = True
         time.sleep(wait_time)
+        fetched_0 = True
         continue
     else:
         print("fetched ",len(full_list)," results")
+        fetched_0 = False
     #Filter to have the right date
     for i in range(len(full_list)):
-        if ((full_list[i]['published'][:10]==formatted_today and int(full_list[i]['published'][11:13])<18) or 
-            (full_list[i]['published'][:10]==formatted_yesterday and int(full_list[i]['published'][11:13])>=18)):
+        if ((full_list[i]['published'][:10]==fesd and int(full_list[i]['published'][11:13])<18) or 
+            (full_list[i]['published'][:10]==fisd and int(full_list[i]['published'][11:13])>=18)):
             filter_list.append(full_list[i])
             if i == len(full_list)-1:
                 repeat = True
@@ -120,18 +145,26 @@ def formatTitle(text):
 print("Creating latex file and pdf")
 
 #
-dirname = cwd+'/feeds/'+formatted_today+'/'
+dirname_y = cwd+'/feeds/'+fad[:4]+'/'    #year
+if not Path(dirname_y).is_dir():
+    os.system('mkdir '+dirname_y)
+#
+dirname_m = dirname_y+fad[5:7]+'/'    #month
+if not Path(dirname_m).is_dir():
+    os.system('mkdir '+dirname_m)
+#
+dirname = dirname_m+fad[8:10]+'/'    #day
 if not Path(dirname).is_dir():
     os.system('mkdir '+dirname)
 #
-filename = dirname+formatted_today+'.tex'
+filename = dirname+fad+'.tex'
 output_file = dirname+'output_pdflatex.txt'
 with open(filename, 'w') as f:
     with redirect_stdout(f):
         #Documentclass and dependencies
         print("\\documentclass{article}\n\\usepackage[hidelinks]{hyperref}\n\\usepackage{color}")
         #Title
-        print("\\title{arXiv daily feed}\n\\author{}\n\\date{"+formatted_today+"}")
+        print("\\title{arXiv daily feed}\n\\author{}\n\\date{"+fad+"}")
         #Start document, maketitle
         print("\\begin{document}\n\\maketitle\n")
         #
