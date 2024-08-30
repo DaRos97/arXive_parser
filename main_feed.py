@@ -6,12 +6,14 @@ from pathlib import Path
 import os,sys
 from contextlib import redirect_stdout
 
+
+###########################################################
+# Select date window
+###########################################################
+
 cwd = os.path.dirname(os.path.realpath(__file__))
 def format_day(day):
     return '{:04d}'.format(day.year)+'-'+'{:02d}'.format(day.month)+'-'+'{:02d}'.format(day.day)
-"""
-Here we download the full arxive feed and filter for cathegory and authors
-"""
 days_back = int(sys.argv[1]) #if not datetime.now().weekday()==0 else 3     #Change the 1 to 2,3 ecc.. to have earlier dates
 announced_day = datetime.now() - timedelta(days = days_back)
 fad = format_day(announced_day)
@@ -35,11 +37,10 @@ in_sub_day = datetime.now() - timedelta(days = days_back+in_days_back)
 fisd = format_day(in_sub_day)
 print("Downloading articles of date "+fad+" (from 18:01 of "+fisd+" to 18:00 of "+fesd+")")
 
-if 0:   #For debugging
-    if input("Continue? [Y/n]")=='n':
-        exit()
+###########################################################
+# Download papers
+###########################################################
 
-# Base api query url
 base_url = 'http://export.arxiv.org/api/query?'
 
 initial_r = 0
@@ -88,16 +89,44 @@ while repeat:
     if repeat:
         initial_r += len(full_list)
         time.sleep(wait_time)
-
 print("Total physics entries: ",len(filter_list))
+
+###########################################################
+# Filter for authors and categories
+###########################################################
+
 #Filter for authors
+def find_author(name,list_name):
+    result = False
+    for n in list_name:
+        ln = []
+        #Full name
+        ln.append(n)
+        #Abbreviations
+        ns = n.split()
+        for j in range(len(ns)-1): #all first names except the last name (hopefully is only one)
+            nwn = ''
+            if not j==0:
+                for i in range(j):
+                    nwn += ns[i]+' '
+            nwn += ns[j][0]+'. '
+            if not j==len(ns)-2:
+                for i in range(j+1,len(ns)-1):
+                    nwn += ns[i]+' '
+            nwn += ns[-1]
+            ln.append(nwn)
+        #
+        if name in ln:
+            return True
+    return result
+
 author_list = []
 if Path(cwd+'/authors.txt').is_file():
     with open(cwd+'/authors.txt','r') as f:
         list_names = f.read().split('\n')[:-1]
     for i in range(len(filter_list)):
         for n in range(len(filter_list[i]['authors'])):
-            if filter_list[i]['authors'][n]['name'] in list_names:
+            if find_author(filter_list[i]['authors'][n]['name'],list_names):
                 author_list.append((filter_list[i],n))
     print("Total selected authors entries: ",len(author_list))
 else:
@@ -116,6 +145,12 @@ if Path(cwd+'/categories.txt').is_file():
     print("Total category entries: ",len(category_list))
 else:
     print("No file \"categories.txt\" found")
+
+###########################################################
+# Create pdf latex file
+###########################################################
+
+print("Creating latex file and pdf")
 
 def formatAuthors(authors_list,ind=-1):
     formatted_list = ''
@@ -137,12 +172,6 @@ def formatTitle(text):
             ind = text.index(sc)
             text = text[:ind] + '\\' + text[ind:]
     return text
-
-###################################################################################################
-###################################################################################################
-###################################################################################################
-#Create pdf
-print("Creating latex file and pdf")
 
 #
 dirname_y = cwd+'/feeds/'+fad[:4]+'/'    #year
