@@ -1,0 +1,13 @@
+# Here we put the holiday days
+# First the date (yyyy-mm-dd) and then the weekday (monday->0, ecc..)
+
+2024-09-02 0
+2024-10-08 1
+2024-11-28 3
+2024-12-25 2
+2024-12-26 3
+2024-12-31 1
+
+#######
+
+2025-01-01 2

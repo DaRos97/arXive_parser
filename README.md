@@ -2,6 +2,6 @@
 
 Excecute `main_feed.py` to get the daily feed.
 
-Add and modify files *authors.txt* and *categories.txt* to personalize the search.
+It takes one argument which specifies how many days back to look for the feed. 0 is default and considers the last day of announcement.
 
-Modify `days_back` to chose the date of the search.
+Add and modify files *authors.txt* and *categories.txt* to personalize the search.

@@ -17,22 +17,54 @@ def format_day(day):
 days_back = int(sys.argv[1]) #if not datetime.now().weekday()==0 else 3     #Change the 1 to 2,3 ecc.. to have earlier dates
 announced_day = datetime.now() - timedelta(days = days_back)
 fad = format_day(announced_day)
+#Check for holidays
+list_holidays = []
+if Path(cwd+'/holidays.txt').is_file():
+    with open(cwd+'/holidays.txt','r') as f:
+        list_h = f.read().split('\n')[:-1]
+    for day in list_h:
+        aa = day.split()
+        if len(aa)==2:
+            list_holidays.append((aa[0],int(aa[1])))
+else:
+    print("No holidays.txt file found")
+for i in range(len(list_holidays)):
+    if list_holidays[i][0] == fad:
+        print("The selected announcement day (",fad,") is an official arXiv holiday.")
+        exit()
+
 if announced_day.weekday()==5 or announced_day.weekday()==6:  #weekend is always special
-    print("Chose a weekend-> going back to the previous friday")
+    print("The selected announced day is in the weekend -> going back to the previous friday")
     days_back += +announced_day.weekday()//3
     announced_day = datetime.now() - timedelta(days = days_back)
     fad = format_day(announced_day)
-if announced_day.weekday()==0:  #monday is special
-    end_days_back = 3
-    in_days_back = 4
-elif announced_day.weekday()==1:  #tuesday is also special
-    end_days_back = 1
-    in_days_back = 4
-else:
-    end_days_back = 1
-    in_days_back = 2
+
+def find_in_end(weekday):
+    list_ie = [(3,4),(1,4),(1,2)]
+    ind = weekday if weekday<2 else 2
+    return list_ie[ind]
+end_days_back, in_days_back = find_in_end(announced_day.weekday())
+
 end_sub_day = datetime.now() - timedelta(days = days_back+end_days_back)
 fesd = format_day(end_sub_day)
+
+# Check if there were holidays in the submission period
+cont = True
+ee = end_days_back
+while cont:
+    cont = False
+    dd = [0,10]
+    for d in range(ee,in_days_back):
+        fd = format_day(datetime.now()-timedelta(days=days_back+d))
+        for i in range(len(list_holidays)):
+            if list_holidays[i][0] == fd:
+                dd = list_holidays[i]
+    if dd[1] < 10:
+        print("The current announced date contains more days than normal because of a holiday (",dd[0],").")
+        ed,in_days_back = find_in_end(dd[1])
+        in_days_back += ee
+        ee += ed
+        cont = True
 in_sub_day = datetime.now() - timedelta(days = days_back+in_days_back)
 fisd = format_day(in_sub_day)
 print("Downloading articles of date "+fad+" (from 18:01 of "+fisd+" to 18:00 of "+fesd+")")
